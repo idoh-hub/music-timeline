@@ -887,17 +887,12 @@ async function endGame() {
 }
 
 async function submitScore(score) {
-  try {
-    await fetch(SUBMIT_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'text/plain' },
-      body: JSON.stringify({
-        userName:  playerName,
-        score:     score,
-        timestamp: new Date().toISOString()
-      })
-    });
-  } catch (_) { /* CORS on response is expected — data was still received */ }
+  const url = SUBMIT_URL + '?' + new URLSearchParams({
+    userName:  playerName,
+    score:     score,
+    timestamp: new Date().toISOString()
+  });
+  await fetch(url, { mode: 'no-cors' });
 }
 
 function getRating(misses) {
