@@ -878,9 +878,17 @@ async function endGame() {
 }
 
 async function submitScore(score) {
+  let city = '';
+  try {
+    const res = await fetch('https://ipapi.co/json/');
+    const data = await res.json();
+    city = data.city || '';
+  } catch (_) {}
+
   const url = SUBMIT_URL + '?' + new URLSearchParams({
     userName:  playerName,
     score:     score,
+    city:      city,
     timestamp: new Date().toISOString()
   });
   await fetch(url, { mode: 'no-cors' });
