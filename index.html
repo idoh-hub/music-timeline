@@ -667,7 +667,7 @@ function deezerSearch(query) {
 // ══════════════════════════════════════════════════════════
 //  AUDIO EVENTS
 // ══════════════════════════════════════════════════════════
-audio.addEventListener('play',  () => { setPlayingState(true); setHint('מאזינים…', true); musicHasPlayed = true; updateTimelineSlots(); });
+audio.addEventListener('play',  () => { setPlayingState(true); setHint('מאזינים…', true); if (!musicHasPlayed) setTimeout(() => { musicHasPlayed = true; updateTimelineSlots(); }, 2000); });
 audio.addEventListener('pause', () => { setPlayingState(false); if (awaitingPlacement) setHint('מקמו את השיר ←', false); });
 audio.addEventListener('ended', () => {
   setPlayingState(false);
