@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Song Tester</title>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=IBM+Plex+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #080808; --surface: #111; --surface2: #1a1a1a; --border: #222;
+      --amber: #E8A838; --amber-dim: #9B6D1E;
+      --text: #F0EAD6; --text-dim: #7A7060;
+    }
+    html, body {
+      min-height: 100%; background: var(--bg); color: var(--text);
+      font-family: 'IBM Plex Mono', monospace;
+      display: flex; flex-direction: column; align-items: center;
+      padding: 32px 16px 60px;
+    }
+    h1 {
+      font-family: 'DM Serif Display', serif; font-size: 28px;
+      color: var(--amber); margin-bottom: 6px; text-align: center;
+    }
+    .sub {
+      font-size: 10px; letter-spacing: 0.2em; text-transform: uppercase;
+      color: var(--text-dim); margin-bottom: 32px; text-align: center;
+    }
+    .search-wrap {
+      display: flex; gap: 8px; width: 100%; max-width: 520px; margin-bottom: 24px;
+    }
+    input[type=text] {
+      flex: 1; background: var(--surface); border: 1px solid var(--border);
+      color: var(--text); font-family: 'IBM Plex Mono', monospace;
+      font-size: 14px; padding: 11px 14px; border-radius: 6px; outline: none;
+      -webkit-appearance: none; appearance: none;
+      transition: border-color 0.2s;
+    }
+    input[type=text]:focus { border-color: var(--amber-dim); }
+    input[type=text]::placeholder { color: var(--text-dim); }
+    button {
+      background: var(--amber); color: #080808; border: none; border-radius: 6px;
+      font-family: 'IBM Plex Mono', monospace; font-size: 12px;
+      letter-spacing: 0.1em; text-transform: uppercase;
+      padding: 11px 18px; cursor: pointer; white-space: nowrap;
+      transition: background 0.15s;
+    }
+    button:hover { background: #f0b840; }
+    button:active { transform: scale(0.96); }
+
+    .status {
+      font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase;
+      color: var(--text-dim); min-height: 18px; margin-bottom: 16px;
+      text-align: center; width: 100%; max-width: 520px;
+    }
+    .status.ok  { color: #6bc97e; }
+    .status.err { color: #e07070; }
+
+    /* Results list */
+    .results { width: 100%; max-width: 520px; display: flex; flex-direction: column; gap: 10px; }
+
+    .result-card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 8px; padding: 14px 16px;
+      display: flex; flex-direction: column; gap: 8px;
+    }
+    .result-card.playing { border-color: var(--amber-dim); }
+
+    .rc-top { display: flex; align-items: center; gap: 14px; }
+    .rc-num {
+      font-family: 'DM Serif Display', serif; font-size: 20px;
+      color: var(--text-dim); min-width: 24px; text-align: right; flex-shrink: 0;
+    }
+    .rc-info { flex: 1; min-width: 0; }
+    .rc-title { font-size: 13px; color: var(--text); line-height: 1.4; }
+    .rc-artist { font-size: 11px; color: var(--text-dim); margin-top: 2px; }
+    .rc-album  { font-size: 10px; color: var(--text-dim); margin-top: 1px; font-style: italic; }
+
+    .rc-play {
+      width: 36px; height: 36px; border-radius: 50%; flex-shrink: 0;
+      background: var(--amber); padding: 0;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .rc-play svg { display: block; }
+
+    /* Progress */
+    .rc-prog-wrap { display: flex; flex-direction: column; gap: 3px; }
+    .rc-prog {
+      width: 100%; height: 2px; background: var(--surface2);
+      border-radius: 2px; cursor: pointer; position: relative;
+    }
+    .rc-fill {
+      height: 100%; width: 0%;
+      background: linear-gradient(to right, var(--amber-dim), var(--amber));
+      border-radius: 2px; transition: width 0.3s linear;
+    }
+    .rc-times {
+      display: flex; justify-content: space-between;
+      font-size: 9px; color: var(--text-dim);
+    }
+
+    /* Copy hint */
+    .rc-query {
+      font-size: 10px; color: var(--text-dim); letter-spacing: 0.04em;
+      padding-top: 4px; border-top: 1px solid var(--border);
+      display: flex; justify-content: space-between; align-items: center; gap: 8px;
+    }
+    .rc-query span { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .copy-btn {
+      font-size: 9px; padding: 4px 8px; background: var(--surface2);
+      color: var(--text-dim); border: 1px solid var(--border);
+      border-radius: 4px; white-space: nowrap;
+    }
+    .copy-btn:hover { color: var(--text); }
+
+    /* No preview badge */
+    .no-preview {
+      font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase;
+      color: #e07070; opacity: 0.7;
+    }
+  </style>
+</head>
+<body>
+
+<h1>Song Tester</h1>
+<p class="sub">Check if Deezer finds the right song</p>
+
+<div class="search-wrap">
+  <input type="text" id="queryInput" placeholder="Artist name + song title…"
+    autocomplete="off" spellcheck="false"
+    onkeydown="if(event.key==='Enter') doSearch()">
+  <button onclick="doSearch()">Search</button>
+</div>
+
+<div class="status" id="status"></div>
+<div class="results" id="results"></div>
+
+<script>
+  let cbCounter = 0;
+  let activeAudio = null;
+  let activeInterval = null;
+  let activeCard = null;
+
+  const $ = id => document.getElementById(id);
+
+  function setStatus(msg, cls = '') {
+    const el = $('status');
+    el.textContent = msg;
+    el.className = 'status' + (cls ? ' ' + cls : '');
+  }
+
+  function formatTime(s) {
+    if (!s || isNaN(s)) return '0:00';
+    return `${Math.floor(s/60)}:${String(Math.floor(s%60)).padStart(2,'0')}`;
+  }
+
+  function esc(s) {
+    return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+
+  function doSearch() {
+    const q = $('queryInput').value.trim();
+    if (!q) return;
+    stopAll();
+    $('results').innerHTML = '';
+    setStatus('searching…');
+
+    const cb = `__dz${++cbCounter}`;
+    const script = document.createElement('script');
+    const timer = setTimeout(() => {
+      delete window[cb]; script.remove();
+      setStatus('request timed out', 'err');
+    }, 10000);
+
+    window[cb] = data => {
+      clearTimeout(timer); delete window[cb]; script.remove();
+      renderResults(data?.data || [], q);
+    };
+
+    script.onerror = () => { clearTimeout(timer); delete window[cb]; setStatus('network error', 'err'); };
+    script.src = `https://api.deezer.com/search?q=${encodeURIComponent(q)}&output=jsonp&callback=${cb}`;
+    document.head.appendChild(script);
+  }
+
+  function renderResults(tracks, query) {
+    if (!tracks.length) { setStatus('no results found', 'err'); return; }
+    setStatus(`${tracks.length} results`, 'ok');
+
+    const container = $('results');
+    container.innerHTML = '';
+
+    tracks.slice(0, 12).forEach((t, i) => {
+      const hasPreview = !!t.preview;
+      const card = document.createElement('div');
+      card.className = 'result-card';
+      card.id = `card-${t.id}`;
+
+      card.innerHTML = `
+        <div class="rc-top">
+          <div class="rc-num">${i + 1}</div>
+          <div class="rc-info">
+            <div class="rc-title">${esc(t.title)}</div>
+            <div class="rc-artist">${esc(t.artist?.name ?? '')}</div>
+            <div class="rc-album">${esc(t.album?.title ?? '')}</div>
+          </div>
+          ${hasPreview
+            ? `<button class="rc-play" onclick="toggleAudio('${t.id}', '${esc(t.preview)}')" id="playbtn-${t.id}">
+                <svg id="icon-${t.id}" width="14" height="14" viewBox="0 0 24 24" fill="#080808"><path d="M8 5v14l11-7z"/></svg>
+              </button>`
+            : `<div class="no-preview">no preview</div>`}
+        </div>
+        ${hasPreview ? `
+        <div class="rc-prog-wrap">
+          <div class="rc-prog" id="prog-${t.id}" onclick="seekAudio('${t.id}', event)">
+            <div class="rc-fill" id="fill-${t.id}"></div>
+          </div>
+          <div class="rc-times">
+            <span id="elapsed-${t.id}">0:00</span>
+            <span id="dur-${t.id}">0:00</span>
+          </div>
+        </div>` : ''}
+        <div class="rc-query">
+          <span>search hint: <strong>${esc(t.artist?.name + ' ' + t.title)}</strong></span>
+          <button class="copy-btn" onclick="copyHint('${esc(t.artist?.name + ' ' + t.title)}', this)">Copy</button>
+        </div>`;
+
+      container.appendChild(card);
+    });
+  }
+
+  function stopAll() {
+    if (activeAudio) { activeAudio.pause(); activeAudio = null; }
+    clearInterval(activeInterval); activeInterval = null;
+    if (activeCard) { activeCard.classList.remove('playing'); activeCard = null; }
+  }
+
+  function toggleAudio(id, url) {
+    const icon = $(`icon-${id}`);
+    const card = $(`card-${id}`);
+
+    // If clicking the currently playing card → pause
+    if (activeAudio && !activeAudio.paused && activeCard === card) {
+      activeAudio.pause();
+      icon.innerHTML = '<path d="M8 5v14l11-7z"/>';
+      card.classList.remove('playing');
+      clearInterval(activeInterval);
+      return;
+    }
+
+    // Stop whatever was playing
+    stopAll();
+
+    const a = new Audio(url);
+    a.volume = 0.8;
+    activeAudio = a;
+    activeCard = card;
+    card.classList.add('playing');
+    icon.innerHTML = '<path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/>';
+
+    a.play().catch(() => {});
+
+    activeInterval = setInterval(() => {
+      const cur = a.currentTime, dur = a.duration;
+      if ($(`fill-${id}`))    $(`fill-${id}`).style.width    = (dur > 0 ? (cur/dur)*100 : 0) + '%';
+      if ($(`elapsed-${id}`)) $(`elapsed-${id}`).textContent = formatTime(cur);
+      if ($(`dur-${id}`))     $(`dur-${id}`).textContent     = formatTime(dur);
+    }, 300);
+
+    a.addEventListener('ended', () => {
+      icon.innerHTML = '<path d="M8 5v14l11-7z"/>';
+      card.classList.remove('playing');
+      clearInterval(activeInterval);
+      if ($(`fill-${id}`)) $(`fill-${id}`).style.width = '100%';
+    });
+  }
+
+  function seekAudio(id, e) {
+    if (!activeAudio || activeCard !== $(`card-${id}`)) return;
+    const bar = $(`prog-${id}`);
+    activeAudio.currentTime = ((e.clientX - bar.getBoundingClientRect().left) / bar.offsetWidth) * (activeAudio.duration || 0);
+  }
+
+  function copyHint(text, btn) {
+    navigator.clipboard.writeText(text).then(() => {
+      btn.textContent = 'Copied!';
+      setTimeout(() => { btn.textContent = 'Copy'; }, 1500);
+    }).catch(() => {
+      btn.textContent = 'Failed';
+      setTimeout(() => { btn.textContent = 'Copy'; }, 1500);
+    });
+  }
+
+  // Focus on load
+  $('queryInput').focus();
+</script>
+</body>
+</html>

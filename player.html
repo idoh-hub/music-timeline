@@ -1,0 +1,942 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>Music Timeline</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=IBM+Plex+Mono:wght@300;400;500&family=Heebo:wght@300;400;500;700&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:       #0c0c1e;
+      --surface:  #14142c;
+      --surface2: #1e1e3a;
+      --border:   #2e2e52;
+      --amber:    #e8185c;
+      --amber-dim:#b01045;
+      --text:     #f0f0ff;
+      --text-dim: #8888aa;
+      --correct:  rgba(60, 220, 100, 0.18);
+      --wrong:    rgba(232, 24, 92, 0.22);
+    }
+
+    html, body {
+      height: 100%; background: var(--bg); color: var(--text);
+      font-family: 'Heebo', sans-serif; overflow: hidden;
+    }
+
+    /* ══ SCREENS ══════════════════════════════════════════════ */
+    .screen {
+      position: fixed; inset: 0; z-index: 10;
+      display: none; align-items: center; justify-content: center;
+      background: var(--bg); overflow-y: auto; padding: 24px 16px;
+    }
+    .screen.active { display: flex; }
+    #screenGame { padding: 0; z-index: 5; }
+
+    /* ══ CARD BASE ════════════════════════════════════════════ */
+    .card {
+      width: 100%; max-width: 440px;
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 12px; padding: 36px 32px;
+      display: flex; flex-direction: column; gap: 20px;
+      animation: fadeUp 0.4s ease both;
+      box-shadow: 0 4px 40px rgba(232, 24, 92, 0.12);
+    }
+
+    /* ══ WELCOME ══════════════════════════════════════════════ */
+    .logo {
+      font-family: 'Heebo', sans-serif; font-weight: 700;
+      font-size: 38px; color: var(--amber); text-align: center;
+      text-shadow: 0 0 24px rgba(232, 24, 92, 0.5);
+    }
+    .tagline {
+      font-size: 15px; color: var(--text-dim); text-align: center; margin-top: -12px;
+    }
+    .test-pill {
+      background: rgba(232,24,92,0.1); border: 1px solid rgba(232,24,92,0.35);
+      color: #ff6688; font-size: 13px; font-weight: 500;
+      padding: 6px 12px; border-radius: 20px; text-align: center;
+    }
+
+    /* ══ SETUP ════════════════════════════════════════════════ */
+    .setup-title { font-weight: 700; font-size: 26px; color: var(--text); }
+    .field-label {
+      font-size: 13px; font-weight: 600; color: var(--text-dim); margin-bottom: -12px;
+    }
+    .text-input {
+      width: 100%; background: var(--surface2); border: 1px solid var(--border);
+      color: var(--text); font-family: 'Heebo', sans-serif;
+      font-size: 16px; padding: 12px 14px; border-radius: 8px; outline: none;
+      transition: border-color 0.2s; -webkit-appearance: none; appearance: none;
+    }
+    .text-input:focus { border-color: var(--amber); box-shadow: 0 0 0 3px rgba(232,24,92,0.15); }
+    .text-input::placeholder { color: var(--text-dim); }
+    .setup-err { font-size: 14px; color: #ff6688; min-height: 18px; text-align: center; }
+
+    /* ══ BUTTONS ══════════════════════════════════════════════ */
+    .btn {
+      width: 100%; border: none; border-radius: 8px; cursor: pointer;
+      font-family: 'Heebo', sans-serif; font-weight: 600;
+      font-size: 16px; padding: 15px;
+      transition: background 0.18s, transform 0.1s, box-shadow 0.18s;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .btn:active { transform: scale(0.97); }
+    .btn-amber {
+      background: var(--amber); color: #fff;
+      box-shadow: 0 2px 20px rgba(232, 24, 92, 0.4);
+    }
+    .btn-amber:hover { background: var(--amber-dim); }
+    .btn-ghost {
+      background: transparent; color: var(--amber);
+      border: 1.5px solid var(--amber); margin-top: -6px;
+    }
+    .btn-ghost:hover { background: rgba(232,24,92,0.08); }
+
+    /* ══ GAME LAYOUT ══════════════════════════════════════════ */
+    .game-wrap { display: flex; flex-direction: column; height: 100%; width: 100%; }
+
+    /* ── Player strip ────────────────────────────────────────── */
+    .player-strip {
+      flex-shrink: 0; padding: 10px 14px 8px;
+      border-bottom: 1px solid var(--border); background: var(--surface);
+      display: flex; flex-direction: column; gap: 6px;
+      box-shadow: 0 1px 12px rgba(0,0,0,0.3);
+    }
+    .ps-row1 { display: flex; align-items: center; gap: 12px; }
+
+    .vinyl-wrap { position: relative; width: 48px; height: 48px; flex-shrink: 0; }
+    .vinyl {
+      width: 100%; height: 100%; border-radius: 50%;
+      background: repeating-radial-gradient(circle at center,
+        #2a2a2a 0px, #111 1px, #222 3px, #0a0a0a 4px, #2a2a2a 6px);
+      box-shadow: 0 0 0 2px #444, inset 0 0 8px rgba(0,0,0,0.5);
+    }
+    .vinyl.playing {
+      animation: spin 3s linear infinite;
+      box-shadow: 0 0 0 2px #444, 0 0 20px rgba(232,24,92,0.45), inset 0 0 8px rgba(0,0,0,0.5);
+    }
+    .vinyl-label {
+      position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%);
+      width: 16px; height: 16px; border-radius: 50%;
+      background: radial-gradient(circle at 40% 35%, #3a1828 0%, #1a0810 100%);
+      border: 1px solid #5a2040;
+    }
+    .vinyl-label::before {
+      content: ''; position: absolute; top: 50%; left: 50%;
+      transform: translate(-50%,-50%);
+      width: 4px; height: 4px; border-radius: 50%; background: #888;
+    }
+    .tonearm { display: none; }
+
+    .ps-info { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 5px; }
+    .ps-header { display: flex; align-items: center; justify-content: space-between; }
+    .ps-title { font-weight: 700; font-size: 14px; color: var(--amber); }
+    .ps-hud { display: flex; align-items: center; gap: 10px; }
+    .hud-placed { font-size: 13px; font-weight: 600; color: var(--amber); }
+    .hud-streak { font-size: 13px; color: var(--text-dim); }
+
+    .ps-controls { display: flex; align-items: center; gap: 10px; }
+    .play-btn {
+      width: 36px; height: 36px; border-radius: 50%;
+      background: var(--amber); color: #fff; border: none;
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer; flex-shrink: 0;
+      box-shadow: 0 2px 14px rgba(232, 24, 92, 0.45);
+      transition: background 0.18s; -webkit-tap-highlight-color: transparent;
+    }
+    .play-btn:hover { background: var(--amber-dim); }
+    .play-btn:active { transform: scale(0.92); }
+    .vol-slider {
+      flex: 1; -webkit-appearance: none; appearance: none; height: 3px;
+      background: var(--surface2); border-radius: 2px; outline: none; cursor: pointer;
+    }
+    .vol-slider::-webkit-slider-thumb {
+      -webkit-appearance: none; appearance: none; width: 14px; height: 14px;
+      border-radius: 50%; background: var(--amber); cursor: pointer;
+    }
+
+    .ps-progress { display: flex; flex-direction: column; gap: 3px; }
+    .prog-bar {
+      width: 100%; height: 3px; background: var(--surface2);
+      border-radius: 2px; cursor: pointer;
+    }
+    .prog-fill {
+      height: 100%; width: 0%;
+      background: linear-gradient(to right, var(--amber-dim), var(--amber));
+      border-radius: 2px; transition: width 0.35s linear;
+    }
+    .prog-times {
+      display: flex; justify-content: space-between;
+      font-size: 11px; color: var(--text-dim);
+    }
+
+    .ps-hint {
+      font-size: 13px; color: var(--text-dim); min-height: 16px; font-weight: 500;
+    }
+    .ps-hint.pulse { animation: pulse 1.5s ease infinite; }
+
+    /* ── Timeline column ─────────────────────────────────────── */
+    .timeline-col {
+      flex: 1; display: flex; flex-direction: column;
+      overflow-y: auto; -webkit-overflow-scrolling: touch;
+      background: var(--bg);
+    }
+    .tl-instruction {
+      font-size: 14px; font-weight: 600; color: var(--text-dim); text-align: center;
+      padding: 14px 16px; border-bottom: 1px solid var(--border); flex-shrink: 0;
+      background: var(--surface);
+    }
+    .timeline { display: flex; flex-direction: column; padding: 0 12px 100px; }
+
+    /* Slots */
+    .slot {
+      display: flex; align-items: center; gap: 10px;
+      padding: 10px 8px; cursor: pointer; border-radius: 8px;
+      transition: background 0.14s; -webkit-tap-highlight-color: transparent;
+    }
+    .slot:hover { background: rgba(200,134,10,0.08); }
+    .slot:active { background: rgba(200,134,10,0.15); }
+    .slot-arrow {
+      font-size: 13px; color: transparent; transition: color 0.14s;
+      width: 14px; text-align: center; flex-shrink: 0;
+    }
+    .slot:hover .slot-arrow { color: var(--amber); }
+    .slot-line { flex: 1; height: 1px; background: var(--border); transition: background 0.14s; }
+    .slot:hover .slot-line { background: var(--amber); }
+    .slot.flash-ok  { background: var(--correct) !important; transition: none; }
+    .slot.flash-bad { background: var(--wrong) !important;   transition: none; }
+
+    /* Cards */
+    .tl-card {
+      display: flex; align-items: flex-start; gap: 14px;
+      padding: 13px 16px; margin: 0 4px;
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 8px;
+    }
+    .tl-card.new { animation: cardIn 0.45s cubic-bezier(0.34,1.56,0.64,1) both; }
+    .card-year {
+      font-family: 'Heebo', sans-serif; font-weight: 700; font-size: 24px;
+      color: var(--amber); line-height: 1; min-width: 52px; flex-shrink: 0;
+    }
+    .card-body { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+    .card-name  { font-size: 15px; font-weight: 500; color: var(--text); line-height: 1.4; }
+    .card-artist{ font-size: 13px; color: var(--text-dim); }
+
+    /* ══ NEXT BUTTON ═════════════════════════════════════════ */
+    .next-wrap {
+      position: fixed; bottom: 0; left: 0; right: 0; z-index: 30;
+      padding: 10px 16px 20px;
+      background: linear-gradient(to top, var(--bg) 60%, transparent);
+      display: none;
+    }
+    .next-wrap.show { display: block; }
+
+    /* ══ WRONG TOAST ══════════════════════════════════════════ */
+    .wrong-toast {
+      position: fixed; top: 50%; left: 50%;
+      transform: translate(-50%,-50%);
+      background: var(--surface); border: 1.5px solid var(--amber);
+      border-radius: 12px; padding: 28px 36px; text-align: center;
+      z-index: 80; opacity: 0; pointer-events: none;
+      transition: opacity 0.22s ease;
+      min-width: 240px; max-width: 320px;
+      box-shadow: 0 0 40px rgba(232, 24, 92, 0.25), 0 12px 48px rgba(0,0,0,0.5);
+    }
+    .wrong-toast.show { opacity: 1; pointer-events: auto; }
+    .wt-label {
+      display: block; font-size: 13px; font-weight: 600; letter-spacing: 0.06em;
+      text-transform: uppercase; color: var(--amber); margin-bottom: 12px;
+    }
+    .wt-year {
+      display: block; font-family: 'Heebo', sans-serif; font-weight: 700;
+      font-size: 52px; color: var(--amber); line-height: 1;
+      text-shadow: 0 0 20px rgba(232, 24, 92, 0.4);
+    }
+    .wt-name  { display: block; font-size: 17px; font-weight: 500; color: var(--text); margin-top: 10px; line-height: 1.4; }
+    .wt-artist{ display: block; font-size: 14px; color: var(--text-dim); margin-top: 4px; }
+
+    /* ══ SCORE SCREEN ═════════════════════════════════════════ */
+    #screenScore { z-index: 50; background: var(--bg); }
+    .score-logo  { font-weight: 700; font-size: 32px; color: var(--amber); text-align: center; text-shadow: 0 0 20px rgba(232,24,92,0.4); }
+    .score-pts-wrap { text-align: center; display: flex; align-items: baseline; justify-content: center; gap: 8px; }
+    .score-pts-num  { font-weight: 700; font-size: 80px; color: var(--amber); line-height: 1; text-shadow: 0 0 30px rgba(232, 24, 92, 0.4); }
+    .score-pts-lbl  { font-size: 18px; color: var(--text-dim); }
+    .score-who      { font-size: 16px; color: var(--text-dim); text-align: center; }
+    .score-rows     { display: flex; flex-direction: column; }
+    .score-row {
+      display: flex; justify-content: space-between; align-items: baseline;
+      padding: 12px 0; border-bottom: 1px solid var(--border);
+    }
+    .s-lbl { font-size: 15px; color: var(--text-dim); }
+    .s-val { font-weight: 700; font-size: 26px; color: var(--text); }
+    .score-msg  { font-size: 16px; color: var(--text-dim); text-align: center; line-height: 1.7; }
+    .score-save { font-size: 13px; color: var(--text-dim); text-align: center; min-height: 18px; }
+    .score-actions { display: flex; flex-direction: column; gap: 8px; }
+
+    /* ══ DESKTOP LAYOUT (≥ 640px) ════════════════════════════ */
+    @media (min-width: 640px) {
+      .game-wrap { flex-direction: row; }
+      .player-strip {
+        width: 210px; flex-shrink: 0; flex-direction: column; align-items: center;
+        border-bottom: none; border-right: 1px solid var(--border);
+        padding: 20px 14px; gap: 14px; overflow-y: auto;
+      }
+      .vinyl-wrap { width: 140px; height: 140px; margin-bottom: 2px; }
+      .vinyl-label { width: 46px; height: 46px; }
+      .vinyl-label::before { width: 6px; height: 6px; }
+      .tonearm {
+        display: block; position: absolute; top: -8px; right: -18px;
+        width: 66px; height: 3px;
+        background: linear-gradient(to right, #555, #888, #555);
+        border-radius: 2px; transform-origin: right center; transform: rotate(-30deg);
+        transition: transform 0.8s cubic-bezier(0.34,1.56,0.64,1); z-index: 10;
+      }
+      .tonearm::before {
+        content: ''; position: absolute; right: -6px; top: 50%;
+        transform: translateY(-50%); width: 12px; height: 12px; border-radius: 50%;
+        background: radial-gradient(circle at 40% 35%, #888, #444); border: 1px solid #666;
+      }
+      .vinyl-wrap.playing .tonearm { transform: rotate(-15deg); }
+      .ps-row1 { flex-direction: column; align-items: center; gap: 12px; }
+      .ps-info  { width: 100%; align-items: center; }
+      .ps-header{ flex-direction: column; align-items: center; gap: 6px; }
+      .ps-title { font-size: 12px; letter-spacing: 0.1em; }
+      .ps-controls { flex-direction: column; align-items: center; }
+      .play-btn { width: 44px; height: 44px; }
+      .vol-slider { width: 100%; }
+      .ps-progress { width: 100%; }
+      .ps-hint { text-align: center; }
+      .timeline-col { overflow-y: auto; }
+      .timeline { padding: 0 28px 40px; }
+      .tl-instruction { padding: 16px 28px; }
+      .next-wrap {
+        position: fixed; bottom: 0; left: 0;
+        width: 210px; padding: 10px 14px 18px;
+        background: linear-gradient(to top, var(--surface) 65%, transparent);
+        right: auto;
+      }
+    }
+
+    /* ══ ANIMATIONS ═══════════════════════════════════════════ */
+    @keyframes spin    { to { transform: rotate(360deg); } }
+    @keyframes pulse   { 0%,100% { opacity: 0.4; } 50% { opacity: 1; } }
+    @keyframes fadeUp  { from { opacity:0; transform:translateY(14px); } to { opacity:1; transform:translateY(0); } }
+    @keyframes cardIn  {
+      from { opacity:0; transform:translateY(-8px) scale(0.97); border-color:var(--amber); }
+      to   { opacity:1; transform:translateY(0)    scale(1);    border-color:var(--border); }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ══ SCREEN 1: WELCOME ══════════════════════════════════ -->
+<div id="screenWelcome" class="screen active">
+  <div class="card">
+    <h1 class="logo">Music Timeline</h1>
+    <p class="tagline" dir="rtl">סדרו את השירים לפי שנה</p>
+
+    <div dir="rtl" style="display:flex;flex-direction:column;gap:14px;font-size:15px;line-height:1.8;color:var(--text);">
+      <div style="font-size:17px;font-weight:700;color:var(--amber);">איך משחקים</div>
+
+      <div>מטרה: להגיע ל־<strong id="goalDisplay">10</strong> שירים בסדר כרונולוגי נכון</div>
+
+      <div>לחצו ▶ כדי לשמוע את השיר</div>
+      <div>מקמו את השיר על ציר הזמן</div>
+
+      <div style="color:var(--text-dim);font-size:13px;border-top:1px solid var(--border);padding-top:12px;">
+        איך משיגים ניקוד גבוה: פחות טעויות, פחות תורות, רצף הצלחות ארוך
+      </div>
+
+    </div>
+
+    <div id="testPill" style="display:none" class="test-pill">מצב בדיקה — 3 שירים בלבד</div>
+    <button class="btn btn-amber" onclick="showSetup()">בואו נתחיל</button>
+  </div>
+</div>
+
+<!-- ══ SCREEN 2: SETUP ════════════════════════════════════ -->
+<div id="screenSetup" class="screen">
+  <div class="card" dir="rtl">
+    <h2 class="setup-title">לפני שמתחילים</h2>
+
+    <label class="field-label">שמך</label>
+    <input type="text" id="nameInput" class="text-input" placeholder="שמך…"
+      maxlength="40" autocomplete="off" dir="rtl"
+      onkeydown="if(event.key==='Enter') startGame()">
+
+    <div id="setupErr" class="setup-err"></div>
+    <button class="btn btn-amber" onclick="startGame()">התחל משחק ←</button>
+  </div>
+</div>
+
+<!-- ══ SCREEN 3: GAME ═════════════════════════════════════ -->
+<div id="screenGame" class="screen">
+  <div class="game-wrap">
+
+    <!-- Player strip -->
+    <div class="player-strip">
+      <div class="ps-row1">
+
+        <!-- Vinyl -->
+        <div class="vinyl-wrap" id="vinylWrap">
+          <div class="vinyl" id="vinyl">
+            <div class="vinyl-label"></div>
+          </div>
+          <div class="tonearm"></div>
+        </div>
+
+        <!-- Info + controls -->
+        <div class="ps-info">
+          <div class="ps-header">
+            <span class="ps-title">Music Timeline</span>
+            <div class="ps-hud">
+              <span class="hud-placed" id="hudPlaced">0 / 10</span>
+              <span class="hud-streak" id="hudStreak"></span>
+            </div>
+          </div>
+          <div class="ps-controls">
+            <button class="play-btn" onclick="togglePlay()">
+              <svg id="playIcon" width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M8 5v14l11-7z"/>
+              </svg>
+            </button>
+            <input type="range" class="vol-slider" id="volSlider"
+              min="0" max="100" value="80" oninput="setVolume(this.value)">
+          </div>
+        </div>
+      </div>
+
+      <!-- Progress -->
+      <div class="ps-progress">
+        <div class="prog-bar" id="progressBar">
+          <div class="prog-fill" id="progressFill"></div>
+        </div>
+        <div class="prog-times">
+          <span id="timeElapsed">0:00</span>
+          <span id="timeDuration">0:00</span>
+        </div>
+      </div>
+
+      <!-- Hint -->
+      <div class="ps-hint pulse" id="hintLabel">loading…</div>
+    </div>
+
+    <!-- Timeline -->
+    <div class="timeline-col">
+      <div class="tl-instruction" dir="rtl">איפה השיר הזה שייך בציר הזמן?</div>
+      <div class="timeline" id="timeline"></div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ══ NEXT BUTTON (fixed bottom) ═════════════════════════ -->
+<div class="next-wrap" id="nextWrap">
+  <button class="btn btn-amber" onclick="goNext()">שיר הבא ←</button>
+</div>
+
+<!-- ══ WRONG TOAST ════════════════════════════════════════ -->
+<div class="wrong-toast" id="wrongToast">
+  <span class="wt-label">לא בדיוק</span>
+  <span class="wt-year"   id="toastYear"></span>
+  <span class="wt-name"   id="toastName"></span>
+  <span class="wt-artist" id="toastArtist"></span>
+</div>
+
+<!-- ══ SCREEN 4: SCORE ════════════════════════════════════ -->
+<div id="screenScore" class="screen">
+  <div class="card" dir="rtl">
+    <h2 class="score-logo" id="scoreTitle">—</h2>
+    <div class="score-pts-wrap">
+      <span class="score-pts-num" id="scoreNum">0</span>
+      <span class="score-pts-lbl">נקודות</span>
+    </div>
+    <div class="score-who" id="scoreWho"></div>
+    <div class="score-rows">
+      <div class="score-row"><span class="s-lbl">שירים שמוקמו</span>  <span class="s-val" id="finalPlaced">—</span></div>
+      <div class="score-row"><span class="s-lbl">סה״כ ניסיונות</span> <span class="s-val" id="finalAttempts">—</span></div>
+      <div class="score-row"><span class="s-lbl">טעויות</span>         <span class="s-val" id="finalMisses">—</span></div>
+      <div class="score-row"><span class="s-lbl">רצף מקסימלי</span>   <span class="s-val" id="finalStreak">—</span></div>
+    </div>
+    <div class="score-msg"  id="scoreMsg"></div>
+    <div class="score-save" id="scoreSave"></div>
+    <div class="score-actions">
+      <button class="btn btn-amber" onclick="initGame()">שחק שוב</button>
+      <button class="btn btn-ghost"  onclick="shareScore()">שתף תוצאה 📤</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ══════════════════════════════════════════════════════════
+//  CONFIG
+// ══════════════════════════════════════════════════════════
+const SONGS_SHEET_ID  = '1kiv61MQcS1wUI06L80g2ui_KcCg6Yo7cDpSpR9S6fio';
+const SCORES_SHEET_ID = '1yW9aFO5xhtUaobjj0apTZRn6TmmFt1dvGi-9TVEYrrg';
+
+// ── Score submission ─────────────────────────────────────
+// 1. Go to script.google.com → New project
+// 2. Paste this code and deploy as web app (Execute as: Me, Access: Anyone):
+//
+//   const SHEET_ID = '1yW9aFO5xhtUaobjj0apTZRn6TmmFt1dvGi-9TVEYrrg';
+//   function doGet(e) {
+//     const p = e.parameter;
+//     SpreadsheetApp.openById(SHEET_ID).getSheets()[0].appendRow([
+//       p.name, Number(p.wrong), Number(p.streak),
+//       Number(p.turns), Number(p.score), p.group,
+//       new Date().toISOString()
+//     ]);
+//     const out = JSON.stringify({status:'ok'});
+//     return ContentService.createTextOutput(
+//       p.callback ? p.callback+'('+out+')' : out
+//     ).setMimeType(p.callback
+//       ? ContentService.MimeType.JAVASCRIPT
+//       : ContentService.MimeType.JSON);
+//   }
+//
+// 3. Paste the deployment URL below:
+const SUBMIT_URL = '';
+
+// Supports both ?test=1 (served) and #test (file:// URLs)
+const TEST_MODE = new URLSearchParams(location.search).get('test') === '1'
+               || location.hash === '#test';
+const GOAL = TEST_MODE ? 3 : 10;
+
+// ══════════════════════════════════════════════════════════
+//  STATE
+// ══════════════════════════════════════════════════════════
+const audio = new Audio();
+let playlist = [], playlistIdx = 0, results = [];
+let isPlaying = false, progressInterval = null, cbCounter = 0;
+
+let timelinePlaced = [], currentSong = null;
+let attempts = 0, misses = 0, streak = 0, bestStreak = 0;
+let awaitingPlacement = false, feedbackActive = false;
+let playerName = '';
+
+// ══════════════════════════════════════════════════════════
+//  HELPERS
+// ══════════════════════════════════════════════════════════
+const $ = id => document.getElementById(id);
+
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  $(id).classList.add('active');
+}
+
+function esc(s) {
+  return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function formatTime(sec) {
+  if (!sec || isNaN(sec)) return '0:00';
+  return `${Math.floor(sec/60)}:${String(Math.floor(sec%60)).padStart(2,'0')}`;
+}
+
+function setHint(msg, pulse = false) {
+  const el = $('hintLabel');
+  el.textContent = msg;
+  el.className = 'ps-hint' + (pulse ? ' pulse' : '');
+}
+
+function updateHud() {
+  $('hudPlaced').textContent = `${timelinePlaced.length} / ${GOAL}`;
+  $('hudStreak').textContent  = streak > 1 ? `x${streak}` : '';
+}
+
+function setPlayingState(playing) {
+  isPlaying = playing;
+  $('vinyl').classList.toggle('playing', playing);
+  $('vinylWrap').classList.toggle('playing', playing);
+  $('playIcon').innerHTML = playing
+    ? '<path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/>'
+    : '<path d="M8 5v14l11-7z"/>';
+  if (playing) startProgressLoop(); else clearInterval(progressInterval);
+}
+
+function startProgressLoop() {
+  clearInterval(progressInterval);
+  progressInterval = setInterval(() => {
+    const cur = audio.currentTime || 0, dur = audio.duration || 0;
+    $('progressFill').style.width = (dur > 0 ? (cur/dur)*100 : 0) + '%';
+    $('timeElapsed').textContent  = formatTime(cur);
+    $('timeDuration').textContent = formatTime(dur);
+  }, 300);
+}
+
+$('progressBar').addEventListener('click', function(e) {
+  if (!audio.duration) return;
+  audio.currentTime = ((e.clientX - this.getBoundingClientRect().left) / this.offsetWidth) * audio.duration;
+});
+
+function togglePlay() { if (audio.src) { isPlaying ? audio.pause() : audio.play(); } }
+function setVolume(v)  { audio.volume = v / 100; }
+
+// ══════════════════════════════════════════════════════════
+//  WELCOME
+// ══════════════════════════════════════════════════════════
+function initWelcome() {
+  if (TEST_MODE) {
+    $('goalDisplay').textContent = '3';
+    $('testPill').style.display = 'block';
+  }
+}
+
+// ══════════════════════════════════════════════════════════
+//  SETUP
+// ══════════════════════════════════════════════════════════
+function showSetup() {
+  showScreen('screenSetup');
+  $('nameInput').focus();
+  $('setupErr').textContent = '';
+}
+
+function startGame() {
+  const name = $('nameInput').value.trim();
+  if (!name) { $('setupErr').textContent = 'נא להזין שם.'; return; }
+  playerName = name;
+  $('setupErr').textContent = '';
+  initGame();
+}
+
+// ══════════════════════════════════════════════════════════
+//  JSONP
+// ══════════════════════════════════════════════════════════
+function jsonp(url, timeout = 10000) {
+  return new Promise((resolve, reject) => {
+    const cb = `__cb${++cbCounter}`;
+    const script = document.createElement('script');
+    const timer = setTimeout(() => { cleanup(); reject(new Error('timeout')); }, timeout);
+    function cleanup() { clearTimeout(timer); delete window[cb]; script.parentNode?.removeChild(script); }
+    window[cb] = data => { cleanup(); resolve(data); };
+    script.onerror = () => { cleanup(); reject(new Error('error')); };
+    script.src = url.includes('?') ? `${url}&callback=${cb}` : `${url}?callback=${cb}`;
+    document.head.appendChild(script);
+  });
+}
+
+// ══════════════════════════════════════════════════════════
+//  PLAYLIST LOADING
+// ══════════════════════════════════════════════════════════
+async function loadPlaylist() {
+  const cb = `__gs${++cbCounter}`;
+  const data = await new Promise((resolve, reject) => {
+    const script = document.createElement('script');
+    const timer = setTimeout(() => { delete window[cb]; script.remove(); reject(new Error('timeout')); }, 12000);
+    window[cb] = d => { clearTimeout(timer); delete window[cb]; script.remove(); resolve(d); };
+    script.onerror = () => { clearTimeout(timer); delete window[cb]; script.remove(); reject(); };
+    script.src = `https://docs.google.com/spreadsheets/d/${SONGS_SHEET_ID}/gviz/tq?tqx=responseHandler:${cb}`;
+    document.head.appendChild(script);
+  });
+
+  const rows = data?.table?.rows || [];
+  const songs = rows.map(row => {
+    const get = i => row.c?.[i]?.v ?? null;
+    const name = get(0), year = get(1), artist = get(2), hint = get(6);
+    if (!name || year === null) return null;
+    return { name, artist, year: Number(year), query: hint || (artist ? `${artist} ${name}` : name) };
+  }).filter(Boolean);
+
+  for (let i = songs.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [songs[i], songs[j]] = [songs[j], songs[i]];
+  }
+  playlist = songs; playlistIdx = 0;
+}
+
+function deezerSearch(query) {
+  return jsonp(`https://api.deezer.com/search?q=${encodeURIComponent(query)}&output=jsonp`);
+}
+
+// ══════════════════════════════════════════════════════════
+//  AUDIO EVENTS
+// ══════════════════════════════════════════════════════════
+audio.addEventListener('play',  () => { setPlayingState(true); setHint('מאזינים…', true); });
+audio.addEventListener('pause', () => { setPlayingState(false); if (awaitingPlacement) setHint('מקמו את השיר ←', false); });
+audio.addEventListener('ended', () => {
+  setPlayingState(false);
+  $('progressFill').style.width = '100%';
+  if (awaitingPlacement) setHint('מקמו את השיר ↑', false);
+});
+audio.addEventListener('error', () => {
+  setPlayingState(false);
+  if (awaitingPlacement && !feedbackActive) {
+    awaitingPlacement = false;
+    playlistIdx = (playlistIdx + 1) % playlist.length;
+    loadNextRound();
+  }
+});
+
+// ══════════════════════════════════════════════════════════
+//  GAME INIT
+// ══════════════════════════════════════════════════════════
+async function initGame() {
+  timelinePlaced = []; currentSong = null;
+  attempts = misses = streak = bestStreak = 0;
+  awaitingPlacement = feedbackActive = false;
+  playlistIdx = 0;
+  hideNext(); hideToast(); renderTimeline(); updateHud();
+  showScreen('screenGame');
+  setHint('טוען רשימת שירים…', true);
+
+  try { await loadPlaylist(); }
+  catch (e) { setHint('שגיאה בטעינת השירים', false); return; }
+
+  loadNextRound();
+}
+
+function loadNextRound() {
+  if (timelinePlaced.length >= GOAL) { endGame(); return; }
+  awaitingPlacement = true; feedbackActive = false;
+  hideNext(); hideToast();
+  setHint('מחפש שיר…', true);
+  playlistSong(playlistIdx);
+}
+
+// ══════════════════════════════════════════════════════════
+//  PLAY A SONG
+// ══════════════════════════════════════════════════════════
+async function playlistSong(idx) {
+  const song = playlist[idx];
+  if (!song) return;
+  audio.pause(); setPlayingState(false);
+  $('progressFill').style.width = '0%';
+  $('timeElapsed').textContent = $('timeDuration').textContent = '0:00';
+
+  let data;
+  try { data = await deezerSearch(song.query); } catch (e) {}
+
+  const tracks = data?.data?.filter(t => t.preview) || [];
+  if (!tracks.length) {
+    playlistIdx = (playlistIdx + 1) % playlist.length;
+    playlistSong(playlistIdx);
+    return;
+  }
+
+  currentSong = song; results = tracks;
+  audio.src = tracks[0].preview;
+  audio.currentTime = 0;
+  audio.volume = $('volSlider').value / 100;
+  audio.play().catch(() => setHint('לחץ ▶ להפעלה', false));
+}
+
+// ══════════════════════════════════════════════════════════
+//  TIMELINE RENDER
+// ══════════════════════════════════════════════════════════
+function renderTimeline() {
+  const container = $('timeline');
+  container.innerHTML = '';
+  const sorted = [...timelinePlaced].sort((a, b) => a.year - b.year);
+
+  for (let i = 0; i <= sorted.length; i++) {
+    const si = i, snap = sorted;
+    const slot = document.createElement('div');
+    slot.className = 'slot';
+    slot.innerHTML = '<div class="slot-arrow">▾</div><div class="slot-line"></div>';
+    slot.addEventListener('click', () => handleSlotClick(si, snap, slot));
+    container.appendChild(slot);
+
+    if (sorted[i]) {
+      const card = document.createElement('div');
+      card.className = 'tl-card';
+      card.dataset.year = sorted[i].year;
+      card.innerHTML = `
+        <span class="card-year">${sorted[i].year}</span>
+        <div class="card-body">
+          <div class="card-name">${esc(sorted[i].name)}</div>
+          ${sorted[i].artist ? `<div class="card-artist">${esc(sorted[i].artist)}</div>` : ''}
+        </div>`;
+      container.appendChild(card);
+    }
+  }
+}
+
+// ══════════════════════════════════════════════════════════
+//  SLOT CLICK
+// ══════════════════════════════════════════════════════════
+function handleSlotClick(si, sorted, slotEl) {
+  if (!awaitingPlacement || feedbackActive || !currentSong) return;
+  feedbackActive = true; attempts++;
+
+  const year = currentSong.year;
+  const left  = sorted[si - 1] || null;
+  const right = sorted[si]     || null;
+  const ok    = (!left || year >= left.year) && (!right || year <= right.year);
+
+  if (ok) {
+    streak++; if (streak > bestStreak) bestStreak = streak;
+    timelinePlaced.push({ name: currentSong.name, artist: currentSong.artist, year });
+
+    slotEl.classList.add('flash-ok');
+    setTimeout(() => slotEl.classList.remove('flash-ok'), 500);
+
+    setTimeout(() => {
+      renderTimeline();
+      const card = $('timeline').querySelector(`.tl-card[data-year="${year}"]`);
+      card?.classList.add('new');
+      card?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      setTimeout(() => card?.classList.remove('new'), 600);
+    }, 150);
+
+    updateHud();
+    setHint('נכון!', false);
+    // If this was the last song needed, go straight to score
+    if (timelinePlaced.length >= GOAL) {
+      setTimeout(endGame, 900);
+      return;
+    }
+  } else {
+    misses++; streak = 0; updateHud();
+    slotEl.classList.add('flash-bad');
+    setTimeout(() => slotEl.classList.remove('flash-bad'), 500);
+    showToast(currentSong);
+    setHint('', false);
+  }
+
+  setTimeout(showNext, 500);
+}
+
+// ══════════════════════════════════════════════════════════
+//  NEXT BUTTON
+// ══════════════════════════════════════════════════════════
+function showNext() { $('nextWrap').classList.add('show'); }
+function hideNext() { $('nextWrap').classList.remove('show'); }
+
+function goNext() {
+  hideToast(); hideNext();
+  awaitingPlacement = false; feedbackActive = false;
+  playlistIdx = (playlistIdx + 1) % playlist.length;
+  loadNextRound();
+}
+
+// ══════════════════════════════════════════════════════════
+//  WRONG TOAST
+// ══════════════════════════════════════════════════════════
+function showToast(song) {
+  $('toastYear').textContent   = song.year;
+  $('toastName').textContent   = song.name;
+  $('toastArtist').textContent = song.artist || '';
+  $('wrongToast').classList.add('show');
+}
+function hideToast() { $('wrongToast').classList.remove('show'); }
+
+// ══════════════════════════════════════════════════════════
+//  END GAME
+// ══════════════════════════════════════════════════════════
+async function endGame() {
+  audio.pause(); setPlayingState(false); awaitingPlacement = false; hideNext();
+
+  // Score formula
+  const score = Math.max(0,
+    800 - (misses * 25) - ((attempts - 10) * 10) + (bestStreak * 15)
+  );
+
+  const { title, msg } = getRating(misses);
+  $('scoreTitle').textContent    = title;
+  $('scoreNum').textContent      = score;
+  $('scoreWho').textContent      = playerName;
+  $('finalPlaced').textContent   = `${GOAL} / ${GOAL}`;
+  $('finalAttempts').textContent = attempts;
+  $('finalMisses').textContent   = misses;
+  $('finalStreak').textContent   = bestStreak;
+  $('scoreMsg').textContent      = msg;
+  $('scoreSave').textContent     = SUBMIT_URL ? 'שומר תוצאה…' : '';
+
+  showScreen('screenScore');
+
+  if (SUBMIT_URL) {
+    try {
+      await submitScore(score);
+      $('scoreSave').textContent = '✓ התוצאה נשמרה';
+    } catch {
+      $('scoreSave').textContent = 'שגיאה בשמירת התוצאה';
+    }
+  }
+}
+
+async function submitScore(score) {
+  const cb = `__sub${++cbCounter}`;
+  const params = new URLSearchParams({
+    name: playerName, wrong: misses, streak: bestStreak,
+    turns: attempts, score, callback: cb
+  });
+  return new Promise(resolve => {
+    const script = document.createElement('script');
+    const timer = setTimeout(() => { resolve(); script.remove(); delete window[cb]; }, 10000);
+    window[cb] = () => { clearTimeout(timer); resolve(); script.remove(); delete window[cb]; };
+    script.onerror = () => { clearTimeout(timer); resolve(); script.remove(); };
+    script.src = `${SUBMIT_URL}?${params}`;
+    document.head.appendChild(script);
+  });
+}
+
+function getRating(misses) {
+  if (misses === 0) return { title: 'אוזן מושלמת',   msg: 'אפס טעויות. יש לך חוש מוזיקלי יוצא דופן.' };
+  if (misses <= 2)  return { title: 'אספן תקליטים',  msg: 'כמעט מושלם. אתה מכיר את העשורים שלך.' };
+  if (misses <= 5)  return { title: 'חובב מוזיקה',   msg: 'תחושה טובה לזמן מוזיקלי, עם כמה הפתעות.' };
+  if (misses <= 9)  return { title: 'מאזין מזדמן',   msg: 'כמה שירים החמיצו אותך. עוד סיבוב?' };
+  if (misses <= 14) return { title: 'רעש ברדיו',     msg: 'ציר הזמן לחם בך. המשך להאזין.' };
+  return              { title: 'אבוד בזמן',           msg: 'היסטוריית מוזיקה — קשה יותר ממה שנדמה.' };
+}
+
+function shareScore() {
+  const title = $('scoreTitle').textContent;
+  const score = $('scoreNum').textContent;
+  const name  = playerName;
+
+  const win = window.open('', '_blank', 'width=480,height=640');
+  win.document.write(`<!DOCTYPE html>
+<html dir="rtl" lang="he">
+<head>
+<meta charset="UTF-8">
+<title>Music Timeline — תוצאה</title>
+<link href="https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;700&display=swap" rel="stylesheet">
+<style>
+  body { margin:0; background:#0c0c1e; color:#f0f0ff; font-family:'Heebo',sans-serif;
+    display:flex; align-items:center; justify-content:center; min-height:100vh; }
+  .card { width:360px; background:#14142c; border:1px solid #2e2e52; border-radius:12px;
+    padding:40px 36px; display:flex; flex-direction:column; gap:18px; text-align:center;
+    box-shadow:0 4px 40px rgba(232,24,92,0.15); }
+  h1 { font-weight:700; font-size:26px; color:#e8185c; margin:0; text-shadow:0 0 20px rgba(232,24,92,0.4); }
+  .pts { font-weight:700; font-size:72px; color:#e8185c; line-height:1; text-shadow:0 0 30px rgba(232,24,92,0.4); }
+  .pts-lbl { font-size:16px; color:#8888aa; margin-top:-4px; }
+  .who { font-size:15px; color:#8888aa; }
+  .rows { border-top:1px solid #2e2e52; }
+  .row { display:flex; justify-content:space-between; padding:12px 0; border-bottom:1px solid #2e2e52; }
+  .lbl { font-size:14px; color:#8888aa; }
+  .val { font-weight:700; font-size:22px; color:#f0f0ff; }
+  .foot { font-size:14px; color:#8888aa; border-top:1px solid #2e2e52; padding-top:14px; line-height:1.6; }
+  .logo { font-size:13px; color:#e8185c; opacity:0.7; letter-spacing:0.2em; font-weight:500; }
+</style>
+</head>
+<body>
+<div class="card">
+  <div class="logo">MUSIC TIMELINE</div>
+  <h1>${esc(title)}</h1>
+  <div class="pts">${score}</div>
+  <div class="pts-lbl">נקודות</div>
+  <div class="who">${esc(name)}</div>
+  <div class="rows">
+    <div class="row"><span class="lbl">שירים שמוקמו</span><span class="val">${$('finalPlaced').textContent}</span></div>
+    <div class="row"><span class="lbl">סה״כ ניסיונות</span><span class="val">${$('finalAttempts').textContent}</span></div>
+    <div class="row"><span class="lbl">טעויות</span><span class="val">${$('finalMisses').textContent}</span></div>
+    <div class="row"><span class="lbl">רצף מקסימלי</span><span class="val">${$('finalStreak').textContent}</span></div>
+  </div>
+  <div class="foot">${$('scoreMsg').textContent}</div>
+</div>
+<script>window.onload = () => { setTimeout(() => window.print(), 400); }<\/script>
+</body></html>`);
+  win.document.close();
+}
+
+// ══════════════════════════════════════════════════════════
+//  BOOT
+// ══════════════════════════════════════════════════════════
+initWelcome();
+</script>
+</body>
+</html>
