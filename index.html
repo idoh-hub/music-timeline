@@ -745,11 +745,13 @@ function renderTimeline() {
   container.innerHTML = '';
   const sorted = [...timelinePlaced].sort((a, b) => a.year - b.year);
 
+  const totalSlots = sorted.length + 1;
   for (let i = 0; i <= sorted.length; i++) {
     const si = i, snap = sorted;
     const slot = document.createElement('div');
     slot.className = 'slot';
-    slot.innerHTML = '<div class="slot-pill"></div>';
+    const label = totalSlots > 1 ? (i === 0 ? 'לפני' : i === totalSlots - 1 ? 'אחרי' : '') : '';
+    slot.innerHTML = `<div class="slot-pill">${label}</div>`;
     slot.addEventListener('click', () => handleSlotClick(si, snap, slot));
     container.appendChild(slot);
 
