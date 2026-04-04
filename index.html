@@ -510,7 +510,7 @@ const SCORES_SHEET_ID = '1yW9aFO5xhtUaobjj0apTZRn6TmmFt1dvGi-9TVEYrrg';
 //   }
 //
 // 3. Paste the deployment URL below:
-const SUBMIT_URL = '';
+const SUBMIT_URL = 'https://script.google.com/macros/s/AKfycbyQcsKKFxPUhXyFIxQAsrdKfC3VpfwZMzcpZb2OhBJcuka7lI2nz6PcWBu99dI9oLkGvQ/exec';
 
 // Supports both ?test=1 (served) and #test (file:// URLs)
 const TEST_MODE = new URLSearchParams(location.search).get('test') === '1'
@@ -887,18 +887,14 @@ async function endGame() {
 }
 
 async function submitScore(score) {
-  const cb = `__sub${++cbCounter}`;
-  const params = new URLSearchParams({
-    name: playerName, wrong: misses, streak: bestStreak,
-    turns: attempts, score, callback: cb
-  });
-  return new Promise(resolve => {
-    const script = document.createElement('script');
-    const timer = setTimeout(() => { resolve(); script.remove(); delete window[cb]; }, 10000);
-    window[cb] = () => { clearTimeout(timer); resolve(); script.remove(); delete window[cb]; };
-    script.onerror = () => { clearTimeout(timer); resolve(); script.remove(); };
-    script.src = `${SUBMIT_URL}?${params}`;
-    document.head.appendChild(script);
+  await fetch(SUBMIT_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'text/plain' },
+    body: JSON.stringify({
+      userName:  playerName,
+      score:     score,
+      timestamp: new Date().toISOString()
+    })
   });
 }
 
