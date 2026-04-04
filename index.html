@@ -871,19 +871,10 @@ async function endGame() {
   $('finalMisses').textContent   = misses;
   $('finalStreak').textContent   = bestStreak;
   $('scoreMsg').textContent      = msg;
-  $('scoreSave').textContent     = SUBMIT_URL ? 'שומר תוצאה…' : '';
-
   showScreen('screenScore');
   prepareShareImage();
 
-  if (SUBMIT_URL) {
-    try {
-      await submitScore(score);
-      $('scoreSave').textContent = '✓ התוצאה נשמרה';
-    } catch {
-      $('scoreSave').textContent = 'שגיאה בשמירת התוצאה';
-    }
-  }
+  if (SUBMIT_URL) submitScore(score).catch(() => {});
 }
 
 async function submitScore(score) {
