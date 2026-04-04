@@ -438,7 +438,7 @@
 
     <!-- Timeline -->
     <div class="timeline-col">
-      <div class="tl-instruction" dir="rtl">הקש על "הנח כאן" כדי למקם את השיר</div>
+      <div class="tl-instruction" dir="rtl">הקש על הפס כדי למקם את השיר בציר הזמן</div>
       <div class="timeline" id="timeline"></div>
     </div>
 
@@ -749,7 +749,7 @@ function renderTimeline() {
     const si = i, snap = sorted;
     const slot = document.createElement('div');
     slot.className = 'slot';
-    slot.innerHTML = '<div class="slot-pill">הנח כאן</div>';
+    slot.innerHTML = '<div class="slot-pill"></div>';
     slot.addEventListener('click', () => handleSlotClick(si, snap, slot));
     container.appendChild(slot);
 
