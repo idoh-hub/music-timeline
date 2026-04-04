@@ -543,6 +543,9 @@ function showScreen(id) {
 function esc(s) {
   return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
+function hebrewOnly(s) {
+  return String(s ?? '').replace(/[a-zA-Z]+/g, '').replace(/\s+/g, ' ').trim();
+}
 
 function formatTime(sec) {
   if (!sec || isNaN(sec)) return '0:00';
@@ -762,7 +765,7 @@ function renderTimeline() {
       card.innerHTML = `
         <span class="card-year">${sorted[i].year}</span>
         <div class="card-body">
-          <div class="card-name">${esc(sorted[i].name)}</div>
+          <div class="card-name">${esc(hebrewOnly(sorted[i].name))}</div>
           ${sorted[i].artist ? `<div class="card-artist">${esc(sorted[i].artist)}</div>` : ''}
         </div>`;
       container.appendChild(card);
@@ -842,7 +845,7 @@ function goNext() {
 // ══════════════════════════════════════════════════════════
 function showToast(song) {
   $('toastYear').textContent   = song.year;
-  $('toastName').textContent   = song.name;
+  $('toastName').textContent   = hebrewOnly(song.name);
   $('toastArtist').textContent = song.artist || '';
   $('wrongToast').classList.add('show');
 }
