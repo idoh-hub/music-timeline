@@ -195,21 +195,31 @@
 
     /* Slots */
     .slot {
-      display: flex; align-items: center; gap: 10px;
-      padding: 10px 8px; cursor: pointer; border-radius: 8px;
-      transition: background 0.14s; -webkit-tap-highlight-color: transparent;
+      display: flex; align-items: center; justify-content: center;
+      padding: 5px 8px; cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
     }
-    .slot:hover { background: rgba(200,134,10,0.08); }
-    .slot:active { background: rgba(200,134,10,0.15); }
-    .slot-arrow {
-      font-size: 13px; color: transparent; transition: color 0.14s;
-      width: 14px; text-align: center; flex-shrink: 0;
+    .slot-pill {
+      flex: 1; text-align: center; font-size: 12px; font-weight: 600;
+      font-family: 'Heebo', sans-serif; letter-spacing: 0.03em;
+      border: 1.5px dashed var(--amber); border-radius: 20px;
+      padding: 7px 0; color: var(--amber);
+      transition: background 0.15s, opacity 0.15s;
+      opacity: 0; pointer-events: none;
     }
-    .slot:hover .slot-arrow { color: var(--amber); }
-    .slot-line { flex: 1; height: 1px; background: var(--border); transition: background 0.14s; }
-    .slot:hover .slot-line { background: var(--amber); }
-    .slot.flash-ok  { background: var(--correct) !important; transition: none; }
-    .slot.flash-bad { background: var(--wrong) !important;   transition: none; }
+    .timeline.slots-locked .slot-pill {
+      opacity: 0.22; border-color: var(--text-dim); color: var(--text-dim);
+      pointer-events: none; cursor: default;
+    }
+    .timeline.slots-ready .slot-pill {
+      opacity: 1; pointer-events: auto;
+    }
+    .timeline.slots-ready .slot:hover .slot-pill,
+    .timeline.slots-ready .slot:active .slot-pill {
+      background: rgba(200,134,10,0.15);
+    }
+    .slot.flash-ok  { background: var(--correct) !important; border-radius: 8px; }
+    .slot.flash-bad { background: var(--wrong) !important;   border-radius: 8px; }
 
     /* Cards */
     .tl-card {
@@ -428,7 +438,7 @@
 
     <!-- Timeline -->
     <div class="timeline-col">
-      <div class="tl-instruction" dir="rtl">איפה השיר הזה שייך בציר הזמן?</div>
+      <div class="tl-instruction" dir="rtl">הקש על "הנח כאן" כדי למקם את השיר</div>
       <div class="timeline" id="timeline"></div>
     </div>
 
@@ -516,7 +526,7 @@ let isPlaying = false, progressInterval = null, cbCounter = 0;
 
 let timelinePlaced = [], currentSong = null;
 let attempts = 0, misses = 0, streak = 0, bestStreak = 0;
-let awaitingPlacement = false, feedbackActive = false;
+let awaitingPlacement = false, feedbackActive = false, musicHasPlayed = false;
 let playerName = '';
 let shareImageFile = null;
 
@@ -657,7 +667,7 @@ function deezerSearch(query) {
 // ══════════════════════════════════════════════════════════
 //  AUDIO EVENTS
 // ══════════════════════════════════════════════════════════
-audio.addEventListener('play',  () => { setPlayingState(true); setHint('מאזינים…', true); });
+audio.addEventListener('play',  () => { setPlayingState(true); setHint('מאזינים…', true); musicHasPlayed = true; updateTimelineSlots(); });
 audio.addEventListener('pause', () => { setPlayingState(false); if (awaitingPlacement) setHint('מקמו את השיר ←', false); });
 audio.addEventListener('ended', () => {
   setPlayingState(false);
@@ -693,9 +703,10 @@ async function initGame() {
 
 function loadNextRound() {
   if (timelinePlaced.length >= GOAL) { endGame(); return; }
-  awaitingPlacement = true; feedbackActive = false;
+  awaitingPlacement = true; feedbackActive = false; musicHasPlayed = false;
   hideNext(); hideToast();
   setHint('מחפש שיר…', true);
+  updateTimelineSlots();
   playlistSong(playlistIdx);
 }
 
@@ -738,7 +749,7 @@ function renderTimeline() {
     const si = i, snap = sorted;
     const slot = document.createElement('div');
     slot.className = 'slot';
-    slot.innerHTML = '<div class="slot-arrow">▾</div><div class="slot-line"></div>';
+    slot.innerHTML = '<div class="slot-pill">הנח כאן</div>';
     slot.addEventListener('click', () => handleSlotClick(si, snap, slot));
     container.appendChild(slot);
 
@@ -755,14 +766,23 @@ function renderTimeline() {
       container.appendChild(card);
     }
   }
+  updateTimelineSlots();
+}
+
+function updateTimelineSlots() {
+  const tl = $('timeline');
+  tl.classList.remove('slots-locked', 'slots-ready');
+  if (!awaitingPlacement || feedbackActive) return;
+  tl.classList.add(musicHasPlayed ? 'slots-ready' : 'slots-locked');
 }
 
 // ══════════════════════════════════════════════════════════
 //  SLOT CLICK
 // ══════════════════════════════════════════════════════════
 function handleSlotClick(si, sorted, slotEl) {
-  if (!awaitingPlacement || feedbackActive || !currentSong) return;
+  if (!awaitingPlacement || feedbackActive || !currentSong || !musicHasPlayed) return;
   feedbackActive = true; attempts++;
+  updateTimelineSlots();
 
   const year = currentSong.year;
   const left  = sorted[si - 1] || null;
