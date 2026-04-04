@@ -889,6 +889,7 @@ async function endGame() {
 async function submitScore(score) {
   await fetch(SUBMIT_URL, {
     method: 'POST',
+    mode: 'no-cors',
     headers: { 'Content-Type': 'text/plain' },
     body: JSON.stringify({
       userName:  playerName,
