@@ -107,7 +107,8 @@
       display: flex; flex-direction: column; gap: 6px;
       box-shadow: 0 1px 12px rgba(0,0,0,0.3);
     }
-    .ps-row1 { display: flex; align-items: center; gap: 12px; }
+    .ps-row1 { display: flex; flex-direction: column; align-items: center; gap: 10px; }
+    .ps-hud-row { display: flex; align-items: center; gap: 12px; }
 
     .vinyl-wrap { position: relative; width: 48px; height: 48px; flex-shrink: 0; }
     .vinyl {
@@ -142,7 +143,7 @@
 
     .ps-controls { display: flex; align-items: center; justify-content: center; gap: 10px; }
     .play-btn {
-      width: 48px; height: 48px; border-radius: 50%;
+      width: 60px; height: 60px; border-radius: 50%;
       background: var(--amber); color: #fff; border: none;
       display: flex; align-items: center; justify-content: center;
       cursor: pointer; flex-shrink: 0;
@@ -321,12 +322,7 @@
         background: radial-gradient(circle at 40% 35%, #888, #444); border: 1px solid #666;
       }
       .vinyl-wrap.playing .tonearm { transform: rotate(-15deg); }
-      .ps-row1 { flex-direction: column; align-items: center; gap: 12px; }
-      .ps-info  { width: 100%; align-items: center; }
-      .ps-header{ flex-direction: column; align-items: center; gap: 6px; }
-      .ps-title { font-size: 12px; letter-spacing: 0.1em; }
-      .ps-controls { flex-direction: column; align-items: center; }
-      .play-btn { width: 44px; height: 44px; }
+      .play-btn { width: 64px; height: 64px; }
       .vol-slider { width: 100%; }
       .ps-progress { width: 100%; }
       .ps-hint { text-align: center; }
@@ -384,32 +380,15 @@
     <!-- Player strip -->
     <div class="player-strip">
       <div class="ps-row1">
-
-        <!-- Vinyl -->
-        <div class="vinyl-wrap" id="vinylWrap">
-          <div class="vinyl" id="vinyl">
-            <div class="vinyl-label"></div>
-          </div>
-          <div class="tonearm"></div>
+        <div class="ps-hud-row">
+          <span class="hud-placed" id="hudPlaced">0 / 10</span>
+          <span class="hud-streak" id="hudStreak"></span>
         </div>
-
-        <!-- Info + controls -->
-        <div class="ps-info">
-          <div class="ps-header">
-            <span class="ps-title">Music Timeline</span>
-            <div class="ps-hud">
-              <span class="hud-placed" id="hudPlaced">0 / 10</span>
-              <span class="hud-streak" id="hudStreak"></span>
-            </div>
-          </div>
-          <div class="ps-controls">
-            <button class="play-btn" onclick="togglePlay()">
-              <svg id="playIcon" width="22" height="22" viewBox="0 0 24 24" fill="currentColor">
-                <path d="M8 5v14l11-7z"/>
-              </svg>
-            </button>
-          </div>
-        </div>
+        <button class="play-btn" onclick="togglePlay()">
+          <svg id="playIcon" width="26" height="26" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M8 5v14l11-7z"/>
+          </svg>
+        </button>
       </div>
 
       <!-- Progress -->
