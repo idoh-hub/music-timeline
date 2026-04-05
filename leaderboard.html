@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Music Timeline — טבלת שיאים</title>
-  <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;700&family=DM+Serif+Display:ital@0;1&display=swap" rel="stylesheet">
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     :root {
@@ -20,18 +20,34 @@
       font-family: 'Heebo', sans-serif; display: flex;
       align-items: flex-start; justify-content: center; padding: 32px 16px;
     }
+    .page-hero {
+      width: 100%; max-width: 480px; text-align: center;
+      padding: 0 0 28px; display: flex; flex-direction: column;
+      align-items: center; gap: 6px;
+    }
+    .hero-label {
+      font-size: 11px; letter-spacing: 0.22em; font-weight: 600;
+      color: var(--amber); text-transform: uppercase; opacity: 0.8;
+    }
+    .hero-title {
+      font-family: 'DM Serif Display', serif; font-size: 48px;
+      line-height: 1.1; color: var(--text);
+      text-shadow: 0 0 40px rgba(232,24,92,0.25);
+    }
+    .hero-sub {
+      font-size: 13px; color: var(--text-dim); margin-top: 2px;
+    }
     .card {
       width: 100%; max-width: 480px;
       background: var(--surface); border: 1px solid var(--border);
-      border-radius: 12px; padding: 32px 28px;
-      display: flex; flex-direction: column; gap: 8px;
+      border-radius: 12px; padding: 8px 28px 28px;
+      display: flex; flex-direction: column; gap: 0;
       box-shadow: 0 4px 40px rgba(232,24,92,0.12);
     }
     .header {
-      display: flex; align-items: center; justify-content: space-between;
-      margin-bottom: 8px;
+      display: flex; align-items: center; justify-content: flex-end;
+      padding: 16px 0 12px;
     }
-    h1 { font-size: 24px; font-weight: 700; }
     .back {
       font-size: 14px; color: var(--text-dim); text-decoration: none;
       border: 1px solid var(--border); border-radius: 8px; padding: 6px 12px;
@@ -51,9 +67,13 @@
   </style>
 </head>
 <body>
+<div class="page-hero">
+  <div class="hero-label">Music Timeline</div>
+  <h1 class="hero-title">טבלת שיאים</h1>
+  <div class="hero-sub">עשרת המובילים</div>
+</div>
 <div class="card">
   <div class="header">
-    <h1>טבלת שיאים</h1>
     <a href="/" class="back">חזרה למשחק</a>
   </div>
   <div id="content"><div class="msg">טוען…</div></div>
@@ -77,9 +97,10 @@ function load() {
       .sort((a, b) => b.score - a.score)
       .slice(0, 10);
     if (!scores.length) { el.innerHTML = '<div class="msg">אין תוצאות עדיין</div>'; return; }
+    const medals = ['🥇','🥈','🥉'];
     el.innerHTML = scores.map((r, i) => `
       <div class="row">
-        <span class="rank ${i < 3 ? 'top' : 'dim'}">${i + 1}</span>
+        <span class="rank ${i < 3 ? 'top' : 'dim'}">${i < 3 ? medals[i] : i + 1}</span>
         <span class="name">${esc(r.name)}</span>
         <span class="score">${r.score}</span>
       </div>`).join('');
