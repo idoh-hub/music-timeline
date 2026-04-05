@@ -135,9 +135,9 @@
 
     .ps-info { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 5px; }
     .ps-header { display: flex; align-items: center; justify-content: space-between; }
-    .ps-title { font-weight: 700; font-size: 14px; color: var(--amber); }
+    .ps-title { font-weight: 700; font-size: 14px; color: var(--text); }
     .ps-hud { display: flex; align-items: center; gap: 10px; }
-    .hud-placed { font-size: 13px; font-weight: 600; color: var(--amber); }
+    .hud-placed { font-size: 13px; font-weight: 600; color: var(--text); }
     .hud-streak { font-size: 13px; color: var(--text-dim); }
 
     .ps-controls { display: flex; align-items: center; gap: 10px; }
@@ -231,7 +231,7 @@
     .tl-card.new { animation: cardIn 0.45s cubic-bezier(0.34,1.56,0.64,1) both; }
     .card-year {
       font-family: 'Heebo', sans-serif; font-weight: 700; font-size: 24px;
-      color: var(--amber); line-height: 1; min-width: 52px; flex-shrink: 0;
+      color: var(--text); line-height: 1; min-width: 52px; flex-shrink: 0;
     }
     .card-body { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
     .card-name  { font-size: 15px; font-weight: 500; color: var(--text); line-height: 1.4; }
@@ -272,9 +272,9 @@
 
     /* ══ SCORE SCREEN ═════════════════════════════════════════ */
     #screenScore { z-index: 50; background: var(--bg); }
-    .score-logo  { font-weight: 700; font-size: 32px; color: var(--amber); text-align: center; text-shadow: 0 0 20px rgba(232,24,92,0.4); }
+    .score-logo  { font-weight: 700; font-size: 32px; color: var(--text); text-align: center; }
     .score-pts-wrap { text-align: center; display: flex; align-items: baseline; justify-content: center; gap: 8px; }
-    .score-pts-num  { font-weight: 700; font-size: 80px; color: var(--amber); line-height: 1; text-shadow: 0 0 30px rgba(232, 24, 92, 0.4); }
+    .score-pts-num  { font-weight: 700; font-size: 80px; color: var(--text); line-height: 1; }
     .score-pts-lbl  { font-size: 18px; color: var(--text-dim); }
     .score-who      { font-size: 16px; color: var(--text-dim); text-align: center; }
     .score-rows     { display: flex; flex-direction: column; }
@@ -287,6 +287,15 @@
     .score-msg  { font-size: 16px; color: var(--text-dim); text-align: center; line-height: 1.7; }
     .score-save { font-size: 13px; color: var(--text-dim); text-align: center; min-height: 18px; }
     .score-actions { display: flex; flex-direction: column; gap: 8px; }
+
+    /* ══ SCORE SCREEN MOBILE FIT ════════════════════════════ */
+    @media (max-height: 700px) {
+      .score-pts-num  { font-size: 56px; }
+      .score-logo     { font-size: 22px; }
+      .score-row      { padding: 7px 0; }
+      .s-val          { font-size: 20px; }
+      .card           { padding: 20px 20px; gap: 12px; }
+    }
 
     /* ══ DESKTOP LAYOUT (≥ 640px) ════════════════════════════ */
     @media (min-width: 640px) {
@@ -346,25 +355,9 @@
 
 <!-- ══ SCREEN 1: WELCOME ══════════════════════════════════ -->
 <div id="screenWelcome" class="screen active">
-  <div class="card">
+  <div class="card" style="justify-content:space-between;min-height:260px;">
     <h1 class="logo">Music Timeline</h1>
-    <p class="tagline" dir="rtl">סדרו את השירים לפי שנה</p>
-
-    <div dir="rtl" style="display:flex;flex-direction:column;gap:14px;font-size:15px;line-height:1.8;color:var(--text);">
-      <div style="font-size:17px;font-weight:700;color:var(--amber);">איך משחקים</div>
-
-      <div>מטרה: להגיע ל־<strong id="goalDisplay">10</strong> שירים בסדר כרונולוגי נכון</div>
-
-      <div>לחצו ▶ כדי לשמוע את השיר</div>
-      <div>מקמו את השיר על ציר הזמן</div>
-
-      <div style="color:var(--text-dim);font-size:13px;border-top:1px solid var(--border);padding-top:12px;">
-        איך משיגים ניקוד גבוה: פחות טעויות, פחות תורות, רצף הצלחות ארוך
-      </div>
-
-    </div>
-
-    <div id="testPill" style="display:none" class="test-pill">מצב בדיקה — 3 שירים בלבד</div>
+    <p dir="rtl" style="font-size:17px;font-weight:600;color:var(--text);text-align:center;line-height:1.7;">סדרו השירים לפי שנת ההוצאה</p>
     <button class="btn btn-amber" onclick="showSetup()">בואו נתחיל</button>
   </div>
 </div>
@@ -415,8 +408,6 @@
                 <path d="M8 5v14l11-7z"/>
               </svg>
             </button>
-            <input type="range" class="vol-slider" id="volSlider"
-              min="0" max="100" value="80" oninput="setVolume(this.value)">
           </div>
         </div>
       </div>
@@ -594,12 +585,7 @@ function setVolume(v)  { audio.volume = v / 100; }
 // ══════════════════════════════════════════════════════════
 //  WELCOME
 // ══════════════════════════════════════════════════════════
-function initWelcome() {
-  if (TEST_MODE) {
-    $('goalDisplay').textContent = '3';
-    $('testPill').style.display = 'block';
-  }
-}
+function initWelcome() {}
 
 // ══════════════════════════════════════════════════════════
 //  SETUP
@@ -670,12 +656,12 @@ function deezerSearch(query) {
 // ══════════════════════════════════════════════════════════
 //  AUDIO EVENTS
 // ══════════════════════════════════════════════════════════
-audio.addEventListener('play',  () => { setPlayingState(true); setHint('מאזינים…', true); if (!musicHasPlayed) setTimeout(() => { musicHasPlayed = true; updateTimelineSlots(); }, 2000); });
-audio.addEventListener('pause', () => { setPlayingState(false); if (awaitingPlacement) setHint('מקמו את השיר ←', false); });
+audio.addEventListener('play',  () => { setPlayingState(true); setHint('מאזינים…', true); if (!musicHasPlayed) setTimeout(() => { musicHasPlayed = true; updateTimelineSlots(); }, 5000); });
+audio.addEventListener('pause', () => { setPlayingState(false); if (awaitingPlacement) setHint('מקמו את השיר', false); });
 audio.addEventListener('ended', () => {
   setPlayingState(false);
   $('progressFill').style.width = '100%';
-  if (awaitingPlacement) setHint('מקמו את השיר ↑', false);
+  if (awaitingPlacement) setHint('מקמו את השיר', false);
 });
 audio.addEventListener('error', () => {
   setPlayingState(false);
@@ -736,7 +722,7 @@ async function playlistSong(idx) {
   currentSong = song; results = tracks;
   audio.src = tracks[0].preview;
   audio.currentTime = 0;
-  audio.volume = $('volSlider').value / 100;
+  audio.volume = 0.8;
   audio.play().catch(() => setHint('לחץ ▶ להפעלה', false));
 }
 
