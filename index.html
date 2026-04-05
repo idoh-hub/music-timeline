@@ -941,6 +941,7 @@ function loadLeaderboard() {
   }, 10000);
   window[cb] = data => {
     clearTimeout(timer); delete window[cb];
+    console.log('leaderboard raw:', JSON.stringify(data?.table?.rows?.slice(0,3)));
     const rows = data?.table?.rows || [];
     const scores = rows
       .map(r => ({ name: r.c?.[0]?.v ?? '', score: Number(r.c?.[1]?.v ?? 0) }))
