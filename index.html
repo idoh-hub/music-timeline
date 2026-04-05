@@ -353,7 +353,7 @@
 <div id="screenWelcome" class="screen active">
   <div class="card" style="justify-content:space-between;min-height:260px;">
     <h1 class="logo">Music Timeline</h1>
-    <p dir="rtl" style="font-size:17px;font-weight:600;color:var(--text);text-align:center;line-height:1.7;">סדרו השירים לפי שנת ההוצאה</p>
+    <p id="welcomeInstr" dir="rtl" style="font-size:17px;font-weight:600;color:var(--text);text-align:center;line-height:1.7;">מקמו 10 שירים לפי שנת ההוצאה</p>
     <button class="btn btn-amber" onclick="showSetup()">בואו נתחיל</button>
   </div>
 </div>
@@ -562,7 +562,9 @@ function setVolume(v)  { audio.volume = v / 100; }
 // ══════════════════════════════════════════════════════════
 //  WELCOME
 // ══════════════════════════════════════════════════════════
-function initWelcome() {}
+function initWelcome() {
+  if (TEST_MODE) $('welcomeInstr').textContent = 'מקמו 3 שירים לפי שנת ההוצאה';
+}
 
 // ══════════════════════════════════════════════════════════
 //  SETUP
