@@ -447,7 +447,21 @@
     <div class="score-save" id="scoreSave"></div>
     <div class="score-actions">
       <button class="btn btn-amber" onclick="initGame()">שחק שוב</button>
+      <button class="btn btn-ghost"  onclick="showScreen('screenLeaderboard');loadLeaderboard()">טבלת שיאים</button>
       <button class="btn btn-ghost"  onclick="shareScore()">שתף תוצאה</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ SCREEN 5: LEADERBOARD ══════════════════════════════ -->
+<div id="screenLeaderboard" class="screen">
+  <div class="card" dir="rtl" style="width:100%;max-width:480px;">
+    <div style="display:flex;align-items:center;justify-content:space-between;">
+      <h2 style="font-size:22px;font-weight:700;">טבלת שיאים</h2>
+      <button onclick="showScreen('screenScore')" style="background:none;border:none;color:var(--text-dim);font-size:22px;cursor:pointer;line-height:1;">×</button>
+    </div>
+    <div id="lbContent" style="display:flex;flex-direction:column;gap:0;">
+      <div style="color:var(--text-dim);text-align:center;padding:24px;">טוען…</div>
     </div>
   </div>
 </div>
@@ -914,6 +928,36 @@ async function prepareShareImage() {
     console.error('prepareShareImage error:', e);
   } finally {
     document.body.removeChild(card);
+  }
+}
+
+async function loadLeaderboard() {
+  const el = $('lbContent');
+  el.innerHTML = '<div style="color:var(--text-dim);text-align:center;padding:24px;">טוען…</div>';
+  try {
+    const url = `https://docs.google.com/spreadsheets/d/${SCORES_SHEET_ID}/gviz/tq?tqx=out:csv&sheet=Sheet1`;
+    const res  = await fetch(url);
+    const csv  = await res.text();
+    const rows = csv.trim().split('\n').slice(1).map(r =>
+      r.split(',').map(c => c.replace(/^"|"$/g, '').trim())
+    );
+    // columns: userName, score, city, timestamp
+    const scores = rows
+      .map(r => ({ name: r[0], score: Number(r[1]) }))
+      .filter(r => r.name && !isNaN(r.score))
+      .sort((a, b) => b.score - a.score)
+      .slice(0, 10);
+
+    if (!scores.length) { el.innerHTML = '<div style="color:var(--text-dim);text-align:center;padding:24px;">אין תוצאות עדיין</div>'; return; }
+
+    el.innerHTML = scores.map((r, i) => `
+      <div style="display:flex;align-items:center;gap:14px;padding:12px 4px;border-bottom:1px solid var(--border);">
+        <span style="font-size:18px;font-weight:700;color:${i<3?'var(--amber)':'var(--text-dim)'};min-width:28px;">${i+1}</span>
+        <span style="flex:1;font-size:16px;font-weight:600;">${esc(r.name)}</span>
+        <span style="font-size:20px;font-weight:700;">${r.score}</span>
+      </div>`).join('');
+  } catch(e) {
+    el.innerHTML = '<div style="color:#ff6688;text-align:center;padding:24px;">שגיאה בטעינת הנתונים</div>';
   }
 }
 
