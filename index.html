@@ -931,34 +931,34 @@ async function prepareShareImage() {
   }
 }
 
-async function loadLeaderboard() {
+function loadLeaderboard() {
   const el = $('lbContent');
   el.innerHTML = '<div style="color:var(--text-dim);text-align:center;padding:24px;">טוען…</div>';
-  try {
-    const url = `https://docs.google.com/spreadsheets/d/${SCORES_SHEET_ID}/gviz/tq?tqx=out:csv&sheet=Sheet1`;
-    const res  = await fetch(url);
-    const csv  = await res.text();
-    const rows = csv.trim().split('\n').slice(1).map(r =>
-      r.split(',').map(c => c.replace(/^"|"$/g, '').trim())
-    );
-    // columns: userName, score, city, timestamp
+  const cb = `__lb${++cbCounter}`;
+  const timer = setTimeout(() => {
+    delete window[cb];
+    el.innerHTML = '<div style="color:#ff6688;text-align:center;padding:24px;">שגיאה בטעינת הנתונים</div>';
+  }, 10000);
+  window[cb] = data => {
+    clearTimeout(timer); delete window[cb];
+    const rows = data?.table?.rows || [];
     const scores = rows
-      .map(r => ({ name: r[0], score: Number(r[1]) }))
-      .filter(r => r.name && !isNaN(r.score))
+      .map(r => ({ name: r.c?.[0]?.v ?? '', score: Number(r.c?.[1]?.v ?? 0) }))
+      .filter(r => r.name && r.score > 0)
       .sort((a, b) => b.score - a.score)
       .slice(0, 10);
-
     if (!scores.length) { el.innerHTML = '<div style="color:var(--text-dim);text-align:center;padding:24px;">אין תוצאות עדיין</div>'; return; }
-
     el.innerHTML = scores.map((r, i) => `
       <div style="display:flex;align-items:center;gap:14px;padding:12px 4px;border-bottom:1px solid var(--border);">
         <span style="font-size:18px;font-weight:700;color:${i<3?'var(--amber)':'var(--text-dim)'};min-width:28px;">${i+1}</span>
         <span style="flex:1;font-size:16px;font-weight:600;">${esc(r.name)}</span>
         <span style="font-size:20px;font-weight:700;">${r.score}</span>
       </div>`).join('');
-  } catch(e) {
-    el.innerHTML = '<div style="color:#ff6688;text-align:center;padding:24px;">שגיאה בטעינת הנתונים</div>';
-  }
+  };
+  const script = document.createElement('script');
+  script.onerror = () => { clearTimeout(timer); delete window[cb]; el.innerHTML = '<div style="color:#ff6688;text-align:center;padding:24px;">שגיאה בטעינת הנתונים</div>'; };
+  script.src = `https://docs.google.com/spreadsheets/d/${SCORES_SHEET_ID}/gviz/tq?tqx=responseHandler:${cb}`;
+  document.head.appendChild(script);
 }
 
 function shareScore() {
