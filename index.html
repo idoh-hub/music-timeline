@@ -695,6 +695,20 @@ function loadNextRound() {
 // ══════════════════════════════════════════════════════════
 //  PLAY A SONG
 // ══════════════════════════════════════════════════════════
+const MIN_PREVIEW_SECONDS = 25;
+
+function getPreviewDuration(url) {
+  return new Promise(resolve => {
+    const a = new Audio();
+    const done = dur => { a.src = ''; resolve(dur); };
+    a.addEventListener('loadedmetadata', () => done(a.duration), { once: true });
+    a.addEventListener('error', () => done(0), { once: true });
+    setTimeout(() => done(0), 5000);
+    a.src = url;
+    a.load();
+  });
+}
+
 async function playlistSong(idx) {
   const song = playlist[idx];
   if (!song) return;
@@ -712,8 +726,22 @@ async function playlistSong(idx) {
     return;
   }
 
+  // Find first preview that's long enough
+  let chosenTrack = null;
+  for (const track of tracks) {
+    const dur = await getPreviewDuration(track.preview);
+    if (dur >= MIN_PREVIEW_SECONDS) { chosenTrack = track; break; }
+  }
+
+  if (!chosenTrack) {
+    // All previews too short — skip to next playlist song
+    playlistIdx = (playlistIdx + 1) % playlist.length;
+    playlistSong(playlistIdx);
+    return;
+  }
+
   currentSong = song; results = tracks;
-  audio.src = tracks[0].preview;
+  audio.src = chosenTrack.preview;
   audio.currentTime = 0;
   audio.volume = 0.8;
   audio.play().catch(() => setHint('לחץ ▶ להפעלה', false));
