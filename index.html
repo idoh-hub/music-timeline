@@ -511,6 +511,7 @@ let isPlaying = false, progressInterval = null, cbCounter = 0;
 let timelinePlaced = [], currentSong = null;
 let attempts = 0, misses = 0, streak = 0, bestStreak = 0;
 let awaitingPlacement = false, feedbackActive = false, musicHasPlayed = false;
+let usedYears = new Set();
 let playerName = '';
 let shareImageFile = null;
 
@@ -660,7 +661,7 @@ audio.addEventListener('error', () => {
   setPlayingState(false);
   if (awaitingPlacement && !feedbackActive) {
     awaitingPlacement = false;
-    playlistIdx = (playlistIdx + 1) % playlist.length;
+    playlistIdx = findNextPlaylistIdx(playlistIdx);
     loadNextRound();
   }
 });
@@ -668,11 +669,22 @@ audio.addEventListener('error', () => {
 // ══════════════════════════════════════════════════════════
 //  GAME INIT
 // ══════════════════════════════════════════════════════════
+function findNextPlaylistIdx(fromIdx) {
+  // Prefer a song whose year hasn't been used yet this game
+  const start = (fromIdx + 1) % playlist.length;
+  for (let i = 0; i < playlist.length; i++) {
+    const idx = (start + i) % playlist.length;
+    if (!usedYears.has(playlist[idx].year)) return idx;
+  }
+  // All years used — just take the next one
+  return start;
+}
+
 async function initGame() {
   timelinePlaced = []; currentSong = null;
   attempts = misses = streak = bestStreak = 0;
   awaitingPlacement = feedbackActive = false;
-  playlistIdx = 0;
+  playlistIdx = 0; usedYears = new Set();
   hideNext(); hideToast(); renderTimeline(); updateHud();
   showScreen('screenGame');
   setHint('טוען רשימת שירים…', true);
@@ -721,7 +733,7 @@ async function playlistSong(idx) {
 
   const tracks = data?.data?.filter(t => t.preview) || [];
   if (!tracks.length) {
-    playlistIdx = (playlistIdx + 1) % playlist.length;
+    playlistIdx = findNextPlaylistIdx(playlistIdx);
     playlistSong(playlistIdx);
     return;
   }
@@ -735,12 +747,13 @@ async function playlistSong(idx) {
 
   if (!chosenTrack) {
     // All previews too short — skip to next playlist song
-    playlistIdx = (playlistIdx + 1) % playlist.length;
+    playlistIdx = findNextPlaylistIdx(playlistIdx);
     playlistSong(playlistIdx);
     return;
   }
 
   currentSong = song; results = tracks;
+  usedYears.add(song.year);
   audio.src = chosenTrack.preview;
   audio.currentTime = 0;
   audio.volume = 0.8;
@@ -843,7 +856,7 @@ function hideNext() { $('nextWrap').classList.remove('show'); }
 function goNext() {
   hideToast(); hideNext();
   awaitingPlacement = false; feedbackActive = false;
-  playlistIdx = (playlistIdx + 1) % playlist.length;
+  playlistIdx = findNextPlaylistIdx(playlistIdx);
   loadNextRound();
 }
 
